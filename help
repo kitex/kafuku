@@ -1,0 +1,24 @@
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted
+
+pip install flask
+
+pip install confluent-kafka
+
+
+./kafka-topics.sh --create --topic 1mcs.document.deliver --bootstrap-server localhost:9092
+
+
+ ./kafka-topics.sh --describe --topic 1mcs.document.deliver --bootstrap-server localhost:9092
+
+
+ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+
+firewall-cmd --zone=public --permanent --add-service=http
+
+  firewall-cmd --zone=public --permanent --add-port 8080/tcp
+
+  firewall-cmd --reload
+
+  firewall-cmd --list-all
+
+

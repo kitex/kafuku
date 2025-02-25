@@ -12,23 +12,21 @@ KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
 ./kafka-topics.sh --create --topic 1mcs.document.deliver --bootstrap-server localhost:9092
 
 
- ./kafka-topics.sh --describe --topic 1mcs.document.deliver --bootstrap-server localhost:9092
+./kafka-topics.sh --describe --topic 1mcs.document.deliver --bootstrap-server localhost:9092
 
 
- bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
 
 
- ./kafka-console-producer.sh --topic 1mcs.document.deliver --bootstrap-server 192.168.0.23:9092
+./kafka-console-producer.sh --topic 1mcs.document.deliver --bootstrap-server 192.168.0.23:9092
 
 firewall-cmd --zone=public --permanent --add-service=http
 
-  firewall-cmd --zone=public --permanent --add-port 8080/tcp
+firewall-cmd --zone=public --permanent --add-port 8080/tcp
 
-  firewall-cmd --reload
+firewall-cmd --reload
 
-  firewall-cmd --list-all
-
-
+firewall-cmd --list-all
 
 flask --app app.py --debug run
 

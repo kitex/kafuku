@@ -9,7 +9,7 @@ app = Flask(__name__)
 @app.route("/")
 def hello_world():
     messages = consume_kafka("run")
-    return render_template("index.html",kafka_messages=messages)
+    return render_template("table.html",kafka_messages=messages)
 
 
 def kafka_config():

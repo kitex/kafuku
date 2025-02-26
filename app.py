@@ -1,38 +1,108 @@
-from flask import Flask,render_template
-from confluent_kafka import Consumer, KafkaError
+from flask import Flask,render_template,jsonify,request
 import time
-from confluent_kafka import OFFSET_BEGINNING
+from datetime import datetime
+import os
+from confluent_kafka import OFFSET_BEGINNING,Producer,Consumer,KafkaError
 from kmessages import Kmessage
 
 app = Flask(__name__)
 
+# Function to load config from .properties file
+def load_kafka_config(filename="kafka.properties"):
+    config = {}
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):  # Ignore comments and empty lines
+                key, value = line.split("=", 1)
+                print(f"Loading config: {key.strip()} = {value.strip()}")
+                config[key.strip()] = value.strip()
+    return config
+
+def load_application_config(filename="config.properties"):
+    config = {}
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):  # Ignore comments and empty lines
+                key, value = line.split("=", 1)
+                print(f"Loading config: {key.strip()} = {value.strip()}")
+                config[key.strip()] = value.strip()
+    return config
+
+# Initial load of config
+kafka_config = load_kafka_config()
+app_config = load_application_config()
+app.config.update(kafka_config)
+app.config.update(app_config)
+# Track the last modification time of the config file
+last_modified_time = os.path.getmtime("kafka.properties")
+
+
+
+def delivery_report(err, msg):
+    """ Callback function to check if the message was successfully delivered """
+    if err is not None:
+        print(f"❌ Message delivery failed: {err}")
+    else:
+        print(f"✅ Message delivered to {msg.topic()} [{msg.partition()}]")
+
 @app.route("/")
-def hello_world():
+def home():
+    return render_template("table.html")
+
+@app.route("/loadmessages", methods=["GET"])
+def load_messages():
+    print("Loading messages...")	
     messages = consume_kafka("run")
-    return render_template("table.html",kafka_messages=messages)
+    data = [{"id": msg.id, "message_json": msg.message_json,"timestamp_type":msg.timestamp_type,"timestamp_value":msg.timestamp_value} for msg in messages]
+    print(request.args)
+    return jsonify(data)
 
+@app.route("/pushmessage",methods=['POST'])
+def push_message():
+    producer = Producer(kafka_config)
+    try:
+        # Get JSON data from request
+        data = request.get_json()
 
-def kafka_config():
-     # Consumer configuration settings
-    conf = {
-        'bootstrap.servers': '192.168.0.23:9092',  # Replace with your broker address(es)
-        'group.id': 'kafka-reader-00003-rock',          # Unique group id for this consumer group
-        'auto.offset.reset': 'earliest',           # Start reading at the beginning if no offset is stored
-        'enable.auto.commit': False 
-    }
+        if not data:
+            return jsonify({"status": "error", "message": "No data received"}), 400
 
-    # Create the Consumer instance
-    consumer = Consumer(conf)
-    return  consumer
+        # Extract parameters from JSON
+        selected_messages = data.get("messages", [])
+        extra_param = data.get("extra_param", "default_value")
+
+        print(f"📩 Received Messages: {selected_messages}")
+        print(f"🔹 Extra Param: {extra_param}")
+
+        kafka_topic = app_config.get('kafka_topic')  # Replace with actual Kafka topic
+
+        # Publish each message to Kafka
+        for msg in selected_messages:
+            message_str = str(msg)  # Convert dict to string
+            producer.produce(kafka_topic, key=str(msg["id"]), value=message_str, callback=delivery_report)
+        
+        producer.flush()  # Ensure all messages are sent
+        status = "success"
+        code = 200
+
+    except Exception as e:
+        status = "error"
+        selected_messages =str(e)
+        code = 500
+    finally:
+        return jsonify({"status": status, "received_messages": selected_messages}),code
+
 
 def consume_kafka(fromwhen):
+    consumer = Consumer(kafka_config)
     if fromwhen != 'run':
         return "not executing"
    
-    consumer = kafka_config()
     # Subscribe to the desired topic(s)
-    topic = '1mcs.document.deliver'  # Replace with your topic name
-    consumer.subscribe([topic])
+    kafka_topic = app_config.get('kafka_topic')
+    consumer.subscribe([kafka_topic])
     
     messages = []
 
@@ -51,26 +121,35 @@ def consume_kafka(fromwhen):
     consumer.assign(partitions)
 
     # Now the consumer will start from the beginning for each partition
-    while True:
-        msg = consumer.poll(1.0)
-        if msg is None:
-            break
-        if msg.error():
-            print("Error: ", msg.error())
-            continue
-        print("Received message: ", msg.value().decode('utf-8'))
-        kafka_message = Kmessage(False,msg.value().decode('utf-8'))
-        messages.append(kafka_message)
+    try:
+        while True:
+            msg = consumer.poll(1.0)
+            if msg is None:
+                break
+            if msg.error():
+                print("Error: ", msg.error())
+                continue
+            # Get message timestamp
+            timestamp_type, timestamp_value = msg.timestamp()
+            readable_time = datetime.fromtimestamp(timestamp_value / 1000).strftime('%Y-%m-%d %H:%M:%S')
+
+            print("Received message: ", msg.value().decode('utf-8'))
+            kafka_message = Kmessage(False,msg.value().decode('utf-8'),timestamp_type,readable_time)
+            messages.append(kafka_message)
+    except KeyboardInterrupt:
+        # Exit gracefully on Ctrl+C
+        pass
+    finally:
+        # Close down consumer to commit final offsets.
+        print('closing connection')
+        consumer.close()
 
     return messages
 
-
-def read_kafka(): 
-    consumer = kafka_config()
-
-    # Subscribe to the desired topic(s)
-    topic = '1mcs.document.deliver'  # Replace with your topic name
-    consumer.subscribe([topic])
+''''
+def read_kafka():
+    kafka_topic = app_config.get('kafka_topic')
+    consumer.subscribe([kafka_topic])
 
     try:
         while True:
@@ -101,3 +180,4 @@ def read_kafka():
         # Close down consumer to commit final offsets.
         print('closing connection')
         consumer.close()
+        '''

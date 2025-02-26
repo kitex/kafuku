@@ -3,25 +3,7 @@
 {% block title %}Kafuku{% endblock %}
 
 {% block content %}
-<table border="1" >
-  <thead>
-    <tr>
+<div id="root"></div>
 
-      <th scope="col">Select</th>
-      <th scope="col">SN</th>
-      <th scope="col">Json</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for msg in kafka_messages %}
-    <tr>
-
-      <td> <input type="checkbox" value={{msg.is_selected}} /></td>
-      <td> {{ msg.id }}</td>
-      <td>{{ msg.message_json }}</td>
-    </tr>
-    {% endfor %}
-
-  </tbody>
-</table>
+<script type="text/babel" src="{{url_for('static', filename='js/MessagesTable.js')}}"></script>
 {% endblock %}

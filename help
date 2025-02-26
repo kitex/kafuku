@@ -11,6 +11,8 @@ KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
 
 ./kafka-topics.sh --create --topic 1mcs.document.deliver --bootstrap-server localhost:9092
 
+#delete topic
+./kafka-topics.sh --delete --topic 1mcs.document.deliver --bootstrap-server 192.168.0.23:909
 
 ./kafka-topics.sh --describe --topic 1mcs.document.deliver --bootstrap-server localhost:9092
 
@@ -18,7 +20,7 @@ KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
 bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
 
 
-./kafka-console-producer.sh --topic 1mcs.document.deliver --bootstrap-server 192.168.0.23:9092
+./kafka-console-producer.sh --topic 1mcs.document.deliver.test --bootstrap-server 192.168.0.23:9092
 
 firewall-cmd --zone=public --permanent --add-service=http
 
@@ -29,4 +31,6 @@ firewall-cmd --reload
 firewall-cmd --list-all
 
 flask --app app.py --debug run
+
+
 

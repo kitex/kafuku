@@ -1,0 +1,1 @@
+This application allows user to connect with kafka cluster and read kafka topic.

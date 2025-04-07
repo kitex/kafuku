@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 from confluent_kafka import OFFSET_BEGINNING,Producer,Consumer,KafkaError
 from kmessages import Kmessage
+from confluent_kafka.admin import AdminClient
 
 app = Flask(__name__)
 
@@ -37,7 +38,9 @@ app.config.update(kafka_config)
 app.config.update(app_config)
 # Track the last modification time of the config file
 last_modified_time = os.path.getmtime("kafka.properties")
-
+kadmin = AdminClient(kafka_config)
+# Fetch metadata to get topics
+metadata = kadmin.list_topics(timeout=10)
 
 
 def delivery_report(err, msg):
@@ -48,8 +51,16 @@ def delivery_report(err, msg):
         print(f"✅ Message delivered to {msg.topic()} [{msg.partition()}]")
 
 @app.route("/")
-def home():
-    return render_template("table.html")
+def home():    
+   
+    return render_template("table.html",ktopics_json=ktopics_json)
+
+
+@app.route("/listtopics")
+def home():    
+    ktopics = list(metadata.topics.keys())
+    ktopics_json = [{"topic": topic} for topic in ktopics]
+    return jsonify(ktopics_json)
 
 @app.route("/loadmessages", methods=["GET"])
 def load_messages():

@@ -1,10 +1,14 @@
 const { useState, useEffect } = React;
 
+
+   
+
 function MessagesTable() {
     const [messages, setMessages] = useState([]);
     const [selectedMessages, setSelectedMessages] = useState(new Set());
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedOption, setSelectedOption] = useState("");
+    const [selectedTopic, setSelectedTopic] = useState("");
 
     // Fetch messages from Flask
     const loadMessages = (event) => {
@@ -41,6 +45,11 @@ function MessagesTable() {
     };
 
     useEffect(() => {
+        fetch("/").then(response => response.json()).then(data => setSelectedTopic(data))
+        .then(data => console.log("Selected topic:", data));
+    }, []);
+
+    useEffect(() => {
         console.log("Updated selected messages:", Array.from(selectedMessages).join(", "));
     }, [selectedMessages]);
 
@@ -64,11 +73,11 @@ function MessagesTable() {
             .then(data => {
                 console.log("Messages pushed successfully: " + JSON.stringify(data));
                 loadMessages(event);
-            })// ✅ Reload table after push)
+            })//  Reload table after push)
             .catch(error => console.error("Error pushing messages:", error));
     };
 
-    
+
 
     return (
         <div>
@@ -94,16 +103,22 @@ function MessagesTable() {
                         <option value="">-- Choose One --</option>
                         <option value="latest">latest</option>
                         <option value="earliest">earliest</option>
+                        <option value="Topics">1mcs.document.deliver.test</option>
                     </select>
+
+                  
+
+
+
                 </label>
                 <br /><br />
 
                 <button onClick={loadMessages}>Load Messages</button>
 
             </form>
-            
+
             <br /><br />
-                <button onClick={pushMessages}>Push Selected Messages</button>
+            <button onClick={pushMessages}>Push Selected Messages</button>
 
             <br />
             <h2>Kafka Messages</h2>
